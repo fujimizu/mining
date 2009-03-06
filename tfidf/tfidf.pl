@@ -77,7 +77,7 @@ sub main {
         my @words = sort { $tfidf{$b} <=> $tfidf{$a} } keys %tfidf;
         @words = @words[0 .. MAX_WORD-1] if scalar(@words) > MAX_WORD;
         next if !@words;
-        my $tfidfval = join "\t", map { $_.":".int($tfidf{$_} * 100) } @words;
+        my $tfidfval = join "\t", map { $_."\t".int($tfidf{$_} * 100) } @words;
         #print "$title\t$tfidfval\n";
         $tfidfdb->putasync($title, $tfidfval);
     }
