@@ -1,0 +1,66 @@
+Visual Words using SIFT features
+================================
+
+Requirement:
+ - OpenCV
+ - SIFT detector
+   http://web.engr.oregonstate.edu/~hess/downloads/sift/sift-latest.tar.gz
+
+Howto:
+
+1. 画像からSIFT特徴量を抽出
+
+% ./save_sift.pl ../caltech.txt caltech_sift
+caltech_sift 以下に *.sift が作成される
+
+2. siftファイルからbayonの入力を作成
+
+% ./make_bayon_input.pl caltech_sift data/siftmap.tsv > data/bayon_input.tsv
+
+SIFTの各座標を1つのドキュメントとして出力する。
+このとき各座標に固有のIDを割り振るので、
+画像中のSIFT特徴量はいくつに採番されたかを
+siftmap.tsv に保存しておく。
+
+bayonはcosine距離しか扱えないんだけど、
+それで本当に大丈夫なのか不安。
+
+3. bayonの入力を小さくする
+
+% ./rand_line.pl data/bayon_input.tsv 10 > data/bayon_input_10.tsv
+
+bayonを実行したときに、データが大きすぎて
+メモリが足りなくなることがあるので、
+入力ファイルからランダムに数行選択する。
+
+## 各カテゴリから均等に選択するようにした方がいいかも。
+
+4. SIFTをクラスタリングする
+
+% bayon -l 1.5 -c data/centroid.tsv --clvector-size 128 data/bayon_input_10.tsv > data/cl.tsv 
+
+クラスタの中心ベクトルがvisual wordsになる。
+中心ベクトルのサイズはSIFTと同じ128次元を
+指定しておく必要がある。
+指定しないと50次元にカットされてしまうので。
+
+5. 各SIFTのvisual wordsを特定する
+
+% bayon -C data/centroid.tsv --classify-size 1 data/bayon_input.tsv > data/classify.tsv
+
+--idf もつけないとダメかな
+→つけない方がいいみたい。何でだろう？
+
+一番近いものだけ分かればいいので、
+--classify-size=1 を指定しておく。
+別に指定しなくても問題ないけど。
+
+6. 各画像の特徴量をvisual wordsのヒストグラムで表現
+
+% ./assign_vwords.pl siftmap.tsv data/classify.tsv > data/vword_features.tsv
+
+あとはなんとでも。
+
+7. idfをかける
+
+% ./idf.pl data/vword_features.tsv > data/vword_features_idf.tsv
