@@ -4,17 +4,6 @@ use strict;
 use warnings;
 use File::Basename;
 
-my $basedir = '/var/www/bkrd/data/caltech101/101_ObjectCategories/';
-
-sub convert_filepath {
-    my ($path, $basedir) = @_;
-    my $base_path = basename($path);
-    $base_path =~ s/\.sift/.jpg/;
-    $base_path =~ s/_image/\/image/;
-    return $basedir =~ /\/$/ ? 
-        "$basedir$base_path" : "$basedir/$base_path";
-}
-
 my ($siftmappath, $vwordpath) = @ARGV;
 if (!$siftmappath || !$vwordpath) {
     warn "Usage: $0 siftmap vwords\n";
@@ -52,7 +41,7 @@ while (my $line = <$siftmapfh>) {
             next;
         }
     }
-    print convert_filepath($filename, '/var/www/bkrd/data/caltech101/101_ObjectCategories/');
+    print $filename;
     foreach my $vword (sort { $a <=> $b } keys %histogram) {
         print "\t$vword\t$histogram{$vword}";
     }

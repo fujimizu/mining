@@ -2,35 +2,53 @@
 
 use strict;
 use warnings;
-use File::Basename;
 
 use constant {
-    SIFT_CMD => "/home/fujisawa/Programs/cpp/opencv/sift/sift/bin/siftfeat -x -o %s %s",
+    SIFT_OPTION => " -x -o %s %s",
+    SIFT_TMP    => 'sift.tmp',
 };
 
-my ($fn, $outdir) = @ARGV;
-if (!$fn || !$outdir) {
-    warn "Usage: $0 txtfile outdir\n";
+my ($siftcmd, $siftmappath) = @ARGV;
+if (!$siftcmd || !$siftmappath) {
+    warn "Usage: $0 siftcmd siftmap < imgfiles\n";
     exit(1);
 }
-open my $fh, $fn or die "cannot open $fn";
+open my $siftmapfh, ">$siftmappath" or die "cannot open $siftmappath";
 
-my @files;
-while (my $line = <$fh>) {
-    chomp $line;
-    push @files, $line;
-}
-
-for (my $i = 0; $i < scalar @files; $i++) {
-    my $fn = $files[$i];
-    my $dir = dirname($fn);
-    my $name = basename($fn);
-    my $outfn = sprintf "%s/%s_%s.sift",
-        $outdir, (split /\//, $dir)[-1], (split /\./, $name)[0];
-    my $cmd = sprintf SIFT_CMD, $outfn, $fn;
-    printf "(%d/%d) %s\n", $i+1, scalar @files, $outfn;
-    system $cmd;
-}
-while (my $line = <$fh>) {
-    chomp $line;
+my $count_file = 0;
+my $count_siftid = 0;
+while (my $fn = <STDIN>) {
+    chomp $fn;
+    next if !$fn;
+    # get SIFT features
+    system $siftcmd . sprintf(SIFT_OPTION, SIFT_TMP, $fn);
+    
+    open my $fh, SIFT_TMP or next;
+    my @siftids;
+    my @vector;
+    while (my $line = <$fh>) {
+        chomp $line;
+        next if !$line;
+        if ($line =~ /^\s/) {
+            map { push @vector, $_ if $_ ne '' } split /\s/, $line;
+        }
+        elsif (@vector) {
+            if (scalar @vector != 128) {
+                warn "dim of vector != 128\n";
+                next;
+            }
+            print $count_siftid;
+            for (my $i = 0; $i < 128; $i++) {
+                printf "\t%d\t%d", $i, $vector[$i];
+            }
+            print "\n";
+            push @siftids, $count_siftid;
+            $count_siftid++;
+            @vector = ();
+        }
+    }
+    close $fh;
+    printf $siftmapfh "%s\t%s\n", $fn, join("\t", @siftids);
+    system 'rm '.SIFT_TMP;
+    printf STDERR "(%d) %s\n", ++$count_file, $fn;
 }

@@ -5,61 +5,64 @@ Requirement:
  - OpenCV
  - SIFT detector
    http://web.engr.oregonstate.edu/~hess/downloads/sift/sift-latest.tar.gz
+ - bayon
+   http://code.google.com/p/bayon
+ - Caltech101 dataset
+   http://www.vision.caltech.edu/Image_Datasets/Caltech101/Caltech101.html
 
 Howto:
 
-1. 画像からSIFT特徴量を抽出
+1. 画像からSIFT特徴量を抽出して、bayonの入力を作成
 
-% ./save_sift.pl ../caltech.txt caltech_sift
-caltech_sift 以下に *.sift が作成される
-
-2. siftファイルからbayonの入力を作成
-
-% ./make_bayon_input.pl caltech_sift data/siftmap.tsv > data/bayon_input.tsv
+% find /path/caltech101 -name "*.jpg" | ./save_sift.pl /path/sift/bin/siftfeat data/siftmap.tsv > data/input.tsv
 
 SIFTの各座標を1つのドキュメントとして出力する。
 このとき各座標に固有のIDを割り振るので、
-画像中のSIFT特徴量はいくつに採番されたかを
+各画像中のSIFT特徴量はいくつに採番されたかを
 siftmap.tsv に保存しておく。
 
 bayonはcosine距離しか扱えないんだけど、
 それで本当に大丈夫なのか不安。
 
-3. bayonの入力を小さくする
+2. bayonの入力を小さくする
 
-% ./rand_line.pl data/bayon_input.tsv 10 > data/bayon_input_10.tsv
+% ./rand_line.pl data/input.tsv 10 > data/input_10.tsv
 
 bayonを実行したときに、データが大きすぎて
 メモリが足りなくなることがあるので、
-入力ファイルからランダムに数行選択する。
+入力ファイルからランダムに1/10行選択する。
+
+何行残すかは実行環境に依存するので、
+1/10ではメモリが足りないようならもっと少なくする
 
 ## 各カテゴリから均等に選択するようにした方がいいかも。
 
-4. SIFTをクラスタリングする
+3. SIFTをクラスタリングする
 
-% bayon -l 1.5 -c data/centroid.tsv --clvector-size 128 data/bayon_input_10.tsv > data/cl.tsv 
+% bayon -l 1.5 -c data/centroid.tsv --clvector-size 128 data/input_10.tsv > data/cluster.tsv 
 
 クラスタの中心ベクトルがvisual wordsになる。
 中心ベクトルのサイズはSIFTと同じ128次元を
 指定しておく必要がある。
 指定しないと50次元にカットされてしまうので。
+cluster.tsv は実際には使わないので、消しちゃってもOK。
 
-5. 各SIFTのvisual wordsを特定する
+4. 各SIFTのvisual wordsを特定する
 
-% bayon -C data/centroid.tsv --classify-size 1 data/bayon_input.tsv > data/classify.tsv
+% bayon -C data/centroid.tsv --classify-size 1 data/input.tsv > data/classify.tsv
 
 一番近いものだけ分かればいいので、
 --classify-size=1 を指定しておく。
 別に指定しなくても問題ないけど。
 
-6. 各画像の特徴量をvisual wordsのヒストグラムで表現
+5. 各画像の特徴量をvisual wordsのヒストグラム(bag-of-keypoints)で表現
 
-% ./assign_vwords.pl siftmap.tsv data/classify.tsv > data/vword_features.tsv
+% ./assign_vwords.pl siftmap.tsv data/classify.tsv /path/caltech101 > data/bok.tsv
 
 あとはなんとでも。
 
-7. idfをかける
+6. idfをかける
 
-% ./idf.pl data/vword_features.tsv > data/vword_features_idf.tsv
+% ./idf.pl data/bok.tsv > data/bok_idf.tsv
 
 idfかけておいた方が使いやすいかも。
