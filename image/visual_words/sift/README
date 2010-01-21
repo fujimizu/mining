@@ -14,15 +14,13 @@ Howto:
 
 1. 画像からSIFT特徴量を抽出して、bayonの入力を作成
 
+% mkdir data
 % find /path/caltech101 -name "*.jpg" | ./save_sift.pl /path/sift/bin/siftfeat data/siftmap.tsv > data/input.tsv
 
 SIFTの各座標を1つのドキュメントとして出力する。
 このとき各座標に固有のIDを割り振るので、
 各画像中のSIFT特徴量はいくつに採番されたかを
 siftmap.tsv に保存しておく。
-
-bayonはcosine距離しか扱えないんだけど、
-それで本当に大丈夫なのか不安。
 
 2. bayonの入力を小さくする
 
@@ -39,13 +37,14 @@ bayonを実行したときに、データが大きすぎて
 
 3. SIFTをクラスタリングする
 
-% bayon -l 1.5 -c data/centroid.tsv --clvector-size 128 data/input_10.tsv > data/cluster.tsv 
+% bayon -l 1.5 -c data/centroid.tsv --clvector-size 128 data/input_10.tsv > /dev/null
 
 クラスタの中心ベクトルがvisual wordsになる。
 中心ベクトルのサイズはSIFTと同じ128次元を
 指定しておく必要がある。
 指定しないと50次元にカットされてしまうので。
-cluster.tsv は実際には使わないので、消しちゃってもOK。
+クラスタリング結果そのものは特に使わないので
+/dev/null に流し込んでしまう。
 
 4. 各SIFTのvisual wordsを特定する
 
@@ -57,7 +56,7 @@ cluster.tsv は実際には使わないので、消しちゃってもOK。
 
 5. 各画像の特徴量をvisual wordsのヒストグラム(bag-of-keypoints)で表現
 
-% ./assign_vwords.pl siftmap.tsv data/classify.tsv /path/caltech101 > data/bok.tsv
+% ./assign_vwords.pl siftmap.tsv data/classify.tsv > data/bok.tsv
 
 あとはなんとでも。
 
