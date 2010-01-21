@@ -48,9 +48,6 @@ bayonを実行したときに、データが大きすぎて
 
 % bayon -C data/centroid.tsv --classify-size 1 data/bayon_input.tsv > data/classify.tsv
 
---idf もつけないとダメかな
-→つけない方がいいみたい。何でだろう？
-
 一番近いものだけ分かればいいので、
 --classify-size=1 を指定しておく。
 別に指定しなくても問題ないけど。
@@ -64,3 +61,5 @@ bayonを実行したときに、データが大きすぎて
 7. idfをかける
 
 % ./idf.pl data/vword_features.tsv > data/vword_features_idf.tsv
+
+idfかけておいた方が使いやすいかも。
