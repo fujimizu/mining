@@ -1,3 +1,11 @@
+//
+// Extract SURF features from images using OpenCV
+//
+// Build:
+//  % g++ extract_surf_for_bayon.cc -o extract_surf -I/usr/local/include/opencv -O3 -lcv -lhighgui
+//
+//
+
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -16,7 +24,7 @@ void get_surf(const char *filename, CvMemStorage *storage,
 
 int main(int argc, char **argv) {
   if (argc < 4) {
-    fprintf(stderr, "Usage: %s txtfile surf surfid", argv[0]);
+    fprintf(stderr, "Usage: %s txtfile surf surfid\n", argv[0]);
     exit(1);
   }
   std::ifstream ifs(argv[1]);
