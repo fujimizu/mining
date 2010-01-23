@@ -56,7 +56,7 @@ bayonを実行したときに、データが大きすぎて
 
 5. 各画像の特徴量をvisual wordsのヒストグラム(bag-of-keypoints)で表現
 
-% ./assign_vwords.pl siftmap.tsv data/classify.tsv > data/bok.tsv
+% ./assign_vwords.pl data/siftmap.tsv data/classify.tsv > data/bok.tsv
 
 あとはなんとでも。
 
