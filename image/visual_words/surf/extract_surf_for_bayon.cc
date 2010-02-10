@@ -23,23 +23,13 @@ void get_surf(const char *filename, CvMemStorage *storage,
 }
 
 int main(int argc, char **argv) {
-  if (argc < 4) {
-    fprintf(stderr, "Usage: %s txtfile surf surfid\n", argv[0]);
+  if (argc < 2) {
+    fprintf(stderr, "Usage: %s surf_count\n", argv[0]);
     exit(1);
   }
-  std::ifstream ifs(argv[1]);
-  if (!ifs) {
+  FILE *countfp = fopen(argv[1], "w");
+  if (!countfp) {
     fprintf(stderr, "cannot open %s\n", argv[1]);
-    exit(1);
-  }
-  FILE *surffp = fopen(argv[2], "w");
-  if (!surffp) {
-    fprintf(stderr, "cannot open %s\n", argv[2]);
-    exit(1);
-  }
-  FILE *idfp = fopen(argv[3], "w");
-  if (!idfp) {
-    fprintf(stderr, "cannot open %s\n", argv[3]);
     exit(1);
   }
 
@@ -47,7 +37,7 @@ int main(int argc, char **argv) {
   size_t count = 0;
   uint64_t descid = 0;
   std::string line;
-  while (std::getline(ifs, line)) {
+  while (std::getline(std::cin, line)) {
     if (!line.empty()) {
       cvClearMemStorage(storage);
       CvSeq *keypoints;
@@ -55,22 +45,19 @@ int main(int argc, char **argv) {
       get_surf(line.c_str(), storage, keypoints, descriptors);
       if (keypoints->total == 0) continue;
 
-      fputs(line.c_str(), idfp);
+      fprintf(countfp, "%s\t%d\n", line.c_str(), keypoints->total);
       for (int i = 0; i < keypoints->total; i++) {
-        fprintf(idfp, "\t%d", descid);
-        fprintf(surffp, "%d", descid);
-        descid++;
+        printf("%d", descid++);
         float *descriptor = (float *)cvGetSeqElem(descriptors, i);
         for (size_t j = 0; j < NUM_VECTOR; j++) {
           if (fabs(descriptor[j]) > 0.0001) { // threshold
-            fprintf(surffp, "\t%d\t%.4f", j, descriptor[j]);
+            printf("\t%d\t%.4f", j, descriptor[j]);
           }
         }
-        fputs("\n", surffp);
+        printf("\n");
       }
-      fputs("\n", idfp);
     }
-    printf("(%d)\t%s\n", ++count, line.c_str());
+    fprintf(stderr, "(%d)\t%s\n", ++count, line.c_str());
   }
   cvReleaseMemStorage(&storage);
   return 0;

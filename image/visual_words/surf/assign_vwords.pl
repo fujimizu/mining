@@ -4,12 +4,12 @@ use strict;
 use warnings;
 use File::Basename;
 
-my ($idmappath, $vwordpath) = @ARGV;
-if (!$idmappath || !$vwordpath) {
-    warn "Usage: $0 idmap vwords\n";
+my ($countpath, $vwordpath) = @ARGV;
+if (!$countpath || !$vwordpath) {
+    warn "Usage: $0 surf_count vwords\n";
     exit 1;
 }
-open my $idmapfh, $idmappath or die "cannot open $idmappath";
+open my $countfh, $countpath or die "cannot open $countpath";
 open my $vwordfh, $vwordpath or die "cannot open $vwordpath";
 
 my %id2vword;
@@ -26,20 +26,21 @@ while (my $line = <$vwordfh>) {
     $id2vword{$id} = $vword;
 }
 
-while (my $line = <$idmapfh>) {
+my $descid = 0;
+while (my $line = <$countfh>) {
     chomp $line;
     next if !$line;
-    my @data = split /\t/, $line;
-    my $filename = shift @data;
+    my ($filename, $count) = split /\t/, $line;
     my %histogram;
-    foreach my $id (@data) {
-        if ($id2vword{$id}) {
-            $histogram{$id2vword{$id}}++;
+    for (my $i = 0; $i < $count; $i++) {
+        if ($id2vword{$descid}) {
+            $histogram{$id2vword{$descid}}++;
         }
         else {
-            warn "vword not found: $id\n";
+            warn "vword not found: $descid\n";
             next;
         }
+        $descid++;
     }
     print $filename;
     foreach my $vword (sort { $a <=> $b } keys %histogram) {
