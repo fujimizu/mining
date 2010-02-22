@@ -19,8 +19,8 @@ while (my $line = <$vwordfh>) {
     my @data = split /\t/, $line;
     my $id = shift @data;
     my $vword = shift @data;
-    if (!defined $id || !defined $vword) {
-        warn "original id or vword not defiend!\n";
+    if (!defined $vword) {
+        warn "vword not defiend!: $id\n";
         next;
     }
     $id2vword{$id} = $vword;
@@ -37,8 +37,7 @@ while (my $line = <$countfh>) {
             $histogram{$id2vword{$descid}}++;
         }
         else {
-            warn "vword not found: $descid\n";
-            next;
+            warn "vword not found: $filename $descid\n";
         }
         $descid++;
     }
