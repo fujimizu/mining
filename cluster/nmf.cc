@@ -134,7 +134,7 @@ class Nmf {
       }
       printf("\n");
     }
-    printf("\n=== H matrix ===\n");
+    printf("\n=== H matrix (transposed) ===\n");
     for (int j = 0; j < H_.cols(); j++) {
       if (static_cast<int>(document_ids_.size()) <= j) break;
       printf("%s", document_ids_[j].c_str());
