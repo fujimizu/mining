@@ -188,7 +188,7 @@ class Nmf {
 
 int main(int argc, char **argv) {
   if (argc < 3) {
-    fprintf(stderr, "%s data ncluster [niter]\n", argv[0]);
+    fprintf(stderr, "Usage: %s data ncluster [niter]\n", argv[0]);
     exit(1);
   }
   srand(time(NULL));
