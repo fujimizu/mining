@@ -9,7 +9,7 @@
 //    http://www.grouplens.org/node/73
 //
 // Build:
-//   % g++ -Wall -O3 gd.cc -o gd
+//   % g++ -Wall -O3 sgd_movielens.cc -o sgd_movielens
 //
 
 #include <cmath>
@@ -99,7 +99,7 @@ void gradient_descent(const SMat &mat, Mat &U, Mat &V,
   for (size_t i = 0; i < niter; i++) {
     Mat Unew = Mat::Zero(U.rows(), U.cols());
     Mat Vnew = Mat::Zero(V.rows(), V.cols());
-    for (size_t j = 0; j < mat.outerSize(); j++) {
+    for (int j = 0; j < mat.outerSize(); j++) {
       for (SMat::InnerIterator it(mat, j); it; ++it) {
         double val = it.value() - U.row(it.row()).dot(V.col(it.col()));
         Unew.row(it.row()) += val * V.col(it.col()).transpose();
@@ -118,7 +118,7 @@ void stochastic_gradient_descent(const SMat &mat, Mat &U, Mat &V,
   set_random(U);
   set_random(V);
   for (size_t i = 0; i < niter; i++) {
-    for (size_t j = 0; j < mat.outerSize(); j++) {
+    for (int j = 0; j < mat.outerSize(); j++) {
       for (SMat::InnerIterator it(mat, j); it; ++it) {
         count++;
         double eta = eta0 / (1 + static_cast<double>(count) / N);
@@ -135,17 +135,21 @@ void stochastic_gradient_descent(const SMat &mat, Mat &U, Mat &V,
 void check_test_data(const SMat &mat_test, const Mat &mat) {
   size_t ncorrect = 0;
   size_t ndiffone = 0;
-  for (size_t j = 0; j < mat_test.outerSize(); j++) {
+  double rmse = 0.0;
+  for (int j = 0; j < mat_test.outerSize(); j++) {
     for (SMat::InnerIterator it(mat_test, j); it; ++it) {
       int rate = round(mat(it.row(), it.col()));
       if (rate == it.value()) ncorrect++;
       else if (abs(rate - it.value()) == 1) ndiffone++;
+      rmse += (rate - it.value()) * (rate - it.value());
     }
   }
-  printf("Correct:    %d / %d (%.3f\%)\n", ncorrect, mat_test.nonZeros(),
-    static_cast<double>(ncorrect) / mat_test.nonZeros() * 100);
-  printf("Diff(-1/1): %d / %d (%.3f\%)\n", ndiffone, mat_test.nonZeros(),
-    static_cast<double>(ndiffone) / mat_test.nonZeros() * 100);
+  int N = mat_test.nonZeros();
+  printf("Correct:    %ld / %d (%.3f%%)\n", ncorrect, N,
+    static_cast<double>(ncorrect) / N * 100);
+  printf("Diff(-1/1): %ld / %d (%.3f%%)\n", ndiffone, N,
+    static_cast<double>(ndiffone) / N * 100);
+  printf("RMSE:       %.3f\n", sqrt(rmse / N));
 }
 
 int main(int argc, char **argv) {
