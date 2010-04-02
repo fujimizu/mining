@@ -38,10 +38,6 @@ void stochastic_gradient_descent(const SMat &mat, Mat &U, Mat &V,
                                  size_t niter, double eta0, double lambda);
 void check_test_data(const SMat &mat_test, const Mat &mat);
 
-/* constants */
-const size_t NUM_USER = 943;
-const size_t NUM_ITEM = 1682;
-
 
 size_t split(std::string s, const std::string &delimiter,
              std::vector<std::string> &splited) {
@@ -62,13 +58,28 @@ void read_file(const char *filename, SMat &mat) {
     fprintf(stderr, "cannot open %s\n", filename);
     exit(1);
   }
-  size_t row = 0;
+  size_t max_userid = 0;
+  size_t max_itemid = 0;
   std::string line;
   std::vector<std::string> splited;
   while (getline(ifs, line)) {
     split(line, "\t", splited);
-    mat.fill(atoi(splited[0].c_str()), atoi(splited[1].c_str())) 
-      = atoi(splited[2].c_str());
+    size_t userid = atoi(splited[0].c_str());
+    size_t itemid = atoi(splited[1].c_str());
+    if (max_userid < userid) max_userid = userid;
+    if (max_itemid < itemid) max_itemid = itemid;
+    splited.clear();
+  }
+  mat.resize(max_userid+1, max_itemid+1);
+
+  ifs.clear();
+  ifs.seekg(0, std::ios_base::beg);
+  while (getline(ifs, line)) {
+    split(line, "\t", splited);
+    size_t userid = atoi(splited[0].c_str());
+    size_t itemid = atoi(splited[1].c_str());
+    int rate = atoi(splited[2].c_str());
+    mat.fill(userid, itemid) = rate;
     splited.clear();
   }
 }
@@ -126,9 +137,9 @@ void check_test_data(const SMat &mat_test, const Mat &mat) {
   size_t ndiffone = 0;
   for (size_t j = 0; j < mat_test.outerSize(); j++) {
     for (SMat::InnerIterator it(mat_test, j); it; ++it) {
-      int point = round(mat(it.row(), it.col()));
-      if (point == it.value()) ncorrect++;
-      else if (abs(point - it.value()) == 1) ndiffone++;
+      int rate = round(mat(it.row(), it.col()));
+      if (rate == it.value()) ncorrect++;
+      else if (abs(rate - it.value()) == 1) ndiffone++;
     }
   }
   printf("Correct:    %d / %d (%.3f\%)\n", ncorrect, mat_test.nonZeros(),
@@ -142,26 +153,28 @@ int main(int argc, char **argv) {
     fprintf(stderr, "Usage: %s train test ncluster niter eta lambda\n", argv[0]);
     exit(1);
   }
+  srand(time(NULL));
   size_t ncluster = atoi(argv[3]);
   size_t niter    = atoi(argv[4]);
   double eta      = atof(argv[5]);
   double lambda   = atof(argv[5]);
-  SMat mat_train(NUM_USER+1, NUM_ITEM+1);
-  SMat mat_test(NUM_USER+1, NUM_ITEM+1);
-  Mat U(mat_train.rows(), ncluster);
-  Mat V(ncluster, mat_train.cols());
-  srand(time(NULL));
+  SMat mat_train;
+  SMat mat_test;
 
   printf("Reading input data\n");
   read_file(argv[1], mat_train);
   read_file(argv[2], mat_test);
+  Mat U(mat_train.rows(), ncluster);
+  Mat V(ncluster, mat_train.cols());
 
   printf("Factorizing input matrix\n");
   //gradient_descent(mat_train, U, V, niter, eta, lambda);
   stochastic_gradient_descent(mat_train, U, V, niter, eta, lambda);
     
-  printf("Input matrix was factorized. ( M = U * V )\n");
+  printf("Input matrix was factorized ( M = U * V )\n");
   //std::cout << U << std::endl << V << std::endl;
+
+  printf("Checking test data\n");
   check_test_data(mat_test, U * V);
 
   return 0;
