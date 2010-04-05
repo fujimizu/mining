@@ -31,6 +31,11 @@ size_t split(std::string s, const std::string &delimiter,
              std::vector<std::string> &splited);
 void read_file(const char *filename, SMat &mat);
 void set_random(Mat &mat);
+double average(const SMat &mat);
+double standard_deviation(const SMat &mat, double ave);
+void deviation_user_item(const SMat &mat,
+                         std::vector<double> &dev_user,
+                         std::vector<double> &dev_item);
 void gradient_descent(const SMat &mat, Mat &U, Mat &V, size_t niter);
 void stochastic_gradient_descent(const SMat &mat, Mat &U, Mat &V,
                                  size_t niter, double eta, double lambda);
@@ -92,6 +97,53 @@ void set_random(Mat &mat) {
   }
 }
 
+double average(const SMat &mat) {
+  size_t N = mat.nonZeros();
+  if (N == 0) return 0.0;
+  double sum = 0.0;
+  for (int j = 0; j < mat.outerSize(); j++) {
+    for (SMat::InnerIterator it(mat, j); it; ++it) {
+      sum += it.value();
+    }
+  }
+  return sum / N;
+}
+
+double standard_deviation(const SMat &mat, double ave) {
+  size_t N = mat.nonZeros();
+  if (N == 0) return 0.0;
+  double dev = 0.0;
+  for (int j = 0; j < mat.outerSize(); j++) {
+    for (SMat::InnerIterator it(mat, j); it; ++it) {
+      dev += (it.value() - ave) * (it.value() - ave);
+    }
+  }
+  return sqrt(dev / (N - 1));
+}
+
+void deviation_user_item(const SMat &mat,
+                         std::vector<double> &dev_user,
+                         std::vector<double> &dev_item) {
+  std::vector<size_t> count_user(mat.rows(), 0);
+  std::vector<size_t> count_item(mat.cols(), 0);
+  double ave = average(mat);
+//  double sdev = standartd_deviation(mat, ave);
+  for (int j = 0; j < mat.outerSize(); j++) {
+    for (SMat::InnerIterator it(mat, j); it; ++it) {
+      count_user[it.row()]++;
+      count_item[it.col()]++;
+      dev_user[it.row()] += it.value();
+      dev_item[it.col()] += it.value();
+    }
+  }
+  for (size_t i = 0; i < dev_user.size(); i++) {
+    if (count_user[i]) dev_user[i] = dev_user[i] / count_user[i] - ave;
+  }
+  for (size_t i = 0; i < dev_item.size(); i++) {
+    if (count_item[i]) dev_item[i] = dev_item[i] / count_item[i] - ave;
+  }
+}
+
 void gradient_descent(const SMat &mat, Mat &U, Mat &V,
                       size_t niter, double eta, double lambda) {
   set_random(U);
@@ -113,6 +165,35 @@ void gradient_descent(const SMat &mat, Mat &U, Mat &V,
 
 void stochastic_gradient_descent(const SMat &mat, Mat &U, Mat &V,
                                  size_t niter, double eta0, double lambda) {
+  std::vector<double> dev_user(mat.rows(), 0);
+  std::vector<double> dev_item(mat.cols(), 0);
+  deviation_user_item(mat, dev_user, dev_item);
+  double ave = average(mat);
+  double sdev = standard_deviation(mat, ave);
+  size_t count = 0;
+  size_t N = mat.nonZeros();
+  set_random(U);
+  set_random(V);
+  for (size_t i = 0; i < niter; i++) {
+    for (int j = 0; j < mat.outerSize(); j++) {
+      for (SMat::InnerIterator it(mat, j); it; ++it) {
+        count++;
+        double eta = eta0 / (1 + static_cast<double>(count) / N);
+        //double val = it.value() - U.row(it.row()).dot(V.col(it.col()));
+        double val = it.value() - ave - dev_user[it.row()] - dev_item[it.col()]
+          - U.row(it.row()).dot(V.col(it.col()));
+        U.row(it.row()) +=
+          eta * (val * V.col(it.col()).transpose() - lambda * U.row(it.row()));
+        V.col(it.col()) +=
+          eta * (val * U.row(it.row()).transpose() - lambda * V.col(it.col()));
+      }
+    }
+  }
+}
+
+/*
+void stochastic_gradient_descent(const SMat &mat, Mat &U, Mat &V,
+                                 size_t niter, double eta0, double lambda) {
   size_t count = 0;
   size_t N = mat.nonZeros();
   set_random(U);
@@ -131,13 +212,46 @@ void stochastic_gradient_descent(const SMat &mat, Mat &U, Mat &V,
     }
   }
 }
+*/
 
+void check_test_data(const SMat &mat_test, const Mat &mat, const SMat &mat_org) {
+  std::vector<double> dev_user(mat_org.rows(), 0);
+  std::vector<double> dev_item(mat_org.cols(), 0);
+  deviation_user_item(mat_org, dev_user, dev_item);
+  double ave = average(mat_org);
+
+  size_t ncorrect = 0;
+  size_t ndiffone = 0;
+  double rmse = 0.0;
+  for (int j = 0; j < mat_test.outerSize(); j++) {
+    for (SMat::InnerIterator it(mat_test, j); it; ++it) {
+      if (it.row() >= mat.rows() || it.col() >= mat.cols()) {
+        fprintf(stderr, "no data: row:%d col:%d\n", it.row(), it.col());
+        continue;
+      }
+      int rate = round(ave + dev_user[it.row()] + dev_item[it.col()] + mat(it.row(), it.col()));
+      //int rate = round(mat(it.row(), it.col()));
+      if (rate == it.value()) ncorrect++;
+      else if (abs(rate - it.value()) == 1) ndiffone++;
+      rmse += (rate - it.value()) * (rate - it.value());
+    }
+  }
+  int N = mat_test.nonZeros();
+  printf("Correct:    %ld / %d (%.3f%%)\n", ncorrect, N,
+    static_cast<double>(ncorrect) / N * 100);
+  printf("Diff(-1/1): %ld / %d (%.3f%%)\n", ndiffone, N,
+    static_cast<double>(ndiffone) / N * 100);
+  printf("RMSE:       %.3f\n", sqrt(rmse / N));
+}
+
+/*
 void check_test_data(const SMat &mat_test, const Mat &mat) {
   size_t ncorrect = 0;
   size_t ndiffone = 0;
   double rmse = 0.0;
   for (int j = 0; j < mat_test.outerSize(); j++) {
     for (SMat::InnerIterator it(mat_test, j); it; ++it) {
+      if (it.row() >= mat.rows() || it.col() >= mat.cols()) continue;
       int rate = round(mat(it.row(), it.col()));
       if (rate == it.value()) ncorrect++;
       else if (abs(rate - it.value()) == 1) ndiffone++;
@@ -151,6 +265,7 @@ void check_test_data(const SMat &mat_test, const Mat &mat) {
     static_cast<double>(ndiffone) / N * 100);
   printf("RMSE:       %.3f\n", sqrt(rmse / N));
 }
+*/
 
 int main(int argc, char **argv) {
   if (argc != 7) {
@@ -179,7 +294,7 @@ int main(int argc, char **argv) {
   //std::cout << U << std::endl << V << std::endl;
 
   printf("Checking test data\n");
-  check_test_data(mat_test, U * V);
-
+  check_test_data(mat_test, U * V, mat_train);
+  //check_test_data(mat_test, U * V);
   return 0;
 }
