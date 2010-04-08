@@ -12,7 +12,7 @@
 //    http://www.grouplens.org/node/73
 //
 // Build:
-//   % g++ -Wall -O3 sgd_movielens.cc -o sgd_movielens
+//   % g++ -Wall -O3 factorize_sgd.cc -o factorize_sgd
 //
 
 #include <cmath>
