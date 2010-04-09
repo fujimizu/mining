@@ -95,11 +95,14 @@ class MF {
   virtual void factorize(size_t ncluster, size_t niter,
                          double eta, double lambda) = 0;
 
-  void do_test(const char *filename) const {
+  void train(const char *filename) {
+    read_file(filename, mtrain_);
+  }
+
+  double test(const char *filename) const {
     SMat mtest;
     read_file(filename, mtest);
-    size_t ncorrect = 0;
-    size_t ndiffone = 0;
+    if (mtest.nonZeros() == 0) return -1;
     double rmse = 0.0;
     for (int j = 0; j < mtest.outerSize(); j++) {
       for (SMat::InnerIterator it(mtest, j); it; ++it) {
@@ -108,17 +111,10 @@ class MF {
           continue;
         }
         int rate = round(predict_rate(it.row(), it.col()));
-        if (rate == it.value()) ncorrect++;
-        else if (abs(rate - it.value()) == 1) ndiffone++;
         rmse += (rate - it.value()) * (rate - it.value());
       }
     }
-    int N = mtest.nonZeros();
-    printf("Correct:    %ld / %d (%.3f%%)\n", ncorrect, N,
-      static_cast<double>(ncorrect) / N * 100);
-    printf("Diff(-1/1): %ld / %d (%.3f%%)\n", ndiffone, N,
-      static_cast<double>(ndiffone) / N * 100);
-    printf("RMSE:       %.3f\n", sqrt(rmse / N));
+    return sqrt(rmse / mtest.nonZeros());
   }
 };
 
@@ -131,9 +127,7 @@ class MFGD : public MF {
   }
 
  public:
-  MFGD(const char *filename) {
-    read_file(filename, mtrain_);
-  }
+  MFGD() { }
 
   void factorize(size_t ncluster, size_t niter, double eta, double lambda) {
     U_.resize(mtrain_.rows(), ncluster);
@@ -166,9 +160,6 @@ class MFSGD : public MF {
 
  public:
   MFSGD() { }
-  MFSGD(const char *filename) {
-    read_file(filename, mtrain_);
-  }
 
   void factorize(size_t ncluster, size_t niter, double eta, double lambda) {
     size_t count = 0;
@@ -248,36 +239,45 @@ class MFSGDbias : public MFSGD {
   }
 
  public:
-  MFSGDbias(const char *filename) {
+  void train(const char *filename) {
     read_file(filename, mtrain_);
     average_rate_ = average(mtrain_);
     calc_biases();
   }
 };
 
+void cross_validation(const char *dir, size_t ncluster,
+                      size_t niter, double eta, double lambda) {
+  size_t ntest = 5;
+  double sum = 0.0;
+  for (size_t i = 1; i <= ntest; i++) {
+    char trainfn[128], testfn[128];
+    sprintf(trainfn, "%s/u%ld.base", dir, i);
+    sprintf(testfn, "%s/u%ld.test", dir, i);
+    printf("Training data: %s\n", trainfn);
+    printf("Test data:     %s\n", testfn);
+    //MFGD mf;
+    //MFSGD mf;
+    MFSGDbias mf;
+    mf.train(trainfn);
+
+    printf("Factorizing input matrix ...\n");
+    mf.factorize(ncluster, niter, eta, lambda);
+    double rmse = mf.test(testfn);
+    printf("RMSE=%0.3f\n\n", rmse);
+    sum += rmse;
+  }
+  printf("Result of cross validation: RMSE=%.3f\n", sum / ntest);
+}
+
 int main(int argc, char **argv) {
-  if (argc != 7) {
-    fprintf(stderr, "Usage: %s train test ncluster niter eta lambda\n",
+  if (argc != 6) {
+    fprintf(stderr, "Usage: %s dir ncluster niter eta lambda\n",
             argv[0]);
     exit(1);
   }
   srand(time(NULL));
-  size_t ncluster = atoi(argv[3]);
-  size_t niter    = atoi(argv[4]);
-  double eta      = atof(argv[5]);
-  double lambda   = atof(argv[5]);
-
-  printf("Reading input data\n");
-  //MFGD mf(argv[1]);
-  //MFSGD mf(argv[1]);
-  MFSGDbias mf(argv[1]);
-
-  printf("Factorizing input matrix\n");
-  mf.factorize(ncluster, niter, eta, lambda);
-  printf("Input matrix was factorized ( M = U * V )\n");
-
-  printf("Checking test data\n");
-  mf.do_test(argv[2]);
-
+  cross_validation(argv[1], atoi(argv[2]), atoi(argv[3]),
+                   atof(argv[4]), atof(argv[5]));
   return 0;
 }
