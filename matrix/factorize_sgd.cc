@@ -89,6 +89,18 @@ class MF {
     }
   }
 
+  double average(const SMat &mat) const {
+    size_t N = mat.nonZeros();
+    if (N == 0) return 0.0;
+    double sum = 0.0;
+    for (int j = 0; j < mat.outerSize(); j++) {
+      for (SMat::InnerIterator it(mat, j); it; ++it) {
+        sum += it.value();
+      }
+    }
+    return sum / N;
+  }
+
   virtual double predict_rate(int user, int item) const = 0;
 
  public:
@@ -118,7 +130,7 @@ class MF {
   }
 };
 
-/* matrix factorization using gradient descent */
+/* Matrix factorization using gradient descent. */
 class MFGD : public MF {
  protected:
   double predict_rate(int user, int item) const {
@@ -150,7 +162,7 @@ class MFGD : public MF {
   }
 };
 
-/* matrix factorization using stochastic gradient descent */
+/* Matrix factorization using stochastic gradient descent. */
 class MFSGD : public MF {
  protected:
   double predict_rate(int user, int item) const {
@@ -184,24 +196,13 @@ class MFSGD : public MF {
   }
 };
 
-/* matrix factorization using stochastic gradient descent with biases */
-class MFSGDbias : public MFSGD {
+/* Matrix factorization using stochastic gradient descent with biases.
+ * Biases are set fixed values. */
+class MFSGDBiasFixed : public MFSGD {
  private:
   std::vector<double> user_biases_;
   std::vector<double> item_biases_;
   double average_rate_;
-
-  double average(const SMat &mat) const {
-    size_t N = mat.nonZeros();
-    if (N == 0) return 0.0;
-    double sum = 0.0;
-    for (int j = 0; j < mat.outerSize(); j++) {
-      for (SMat::InnerIterator it(mat, j); it; ++it) {
-        sum += it.value();
-      }
-    }
-    return sum / N;
-  }
 
   void calc_biases() {
     std::vector<size_t> user_count(mtrain_.rows(), 0);
@@ -211,18 +212,23 @@ class MFSGDbias : public MFSGD {
     for (int i = 0; i < mtrain_.outerSize(); i++) {
       for (SMat::InnerIterator it(mtrain_, i); it; ++it) {
         user_count[it.row()]++;
-        item_count[it.col()]++;
-        user_biases_[it.row()] += it.value();
-        item_biases_[it.col()] += it.value();
+        user_biases_[it.row()] += it.value() - average_rate_;
       }
     }
     for (size_t i = 0; i < user_biases_.size(); i++) {
       if (user_count[i])
-        user_biases_[i] = user_biases_[i] / user_count[i] - average_rate_;
+        user_biases_[i] = user_biases_[i] / user_count[i];
+    }
+    for (int i = 0; i < mtrain_.outerSize(); i++) {
+      for (SMat::InnerIterator it(mtrain_, i); it; ++it) {
+        item_count[it.col()]++;
+        item_biases_[it.col()] +=
+          it.value() - average_rate_ - user_biases_[it.row()];
+      }
     }
     for (size_t i = 0; i < item_biases_.size(); i++) {
       if (item_count[i])
-        item_biases_[i] = item_biases_[i] / item_count[i] - average_rate_;
+        item_biases_[i] = item_biases_[i] / item_count[i];
     }
   }
 
@@ -246,6 +252,72 @@ class MFSGDbias : public MFSGD {
   }
 };
 
+/* Matrix factorization using stochastic gradient descent with biases.
+ * Biases will be updated in each iteration. */
+class MFSGDBiasOptimize : public MFSGD {
+ private:
+  std::vector<double> user_biases_;
+  std::vector<double> item_biases_;
+  double average_rate_;
+
+  double bias(int user, int item) const {
+    assert(user < static_cast<int>(user_biases_.size()) &&
+           item < static_cast<int>(item_biases_.size()));
+    return average_rate_ + user_biases_[user] + item_biases_[item];
+  }
+
+  void set_random_biases() {
+    user_biases_.resize(mtrain_.rows());
+    item_biases_.resize(mtrain_.cols());
+    for (int i = 0; i < mtrain_.rows(); i++) {
+      user_biases_[i] = static_cast<double>(rand()) / RAND_MAX;
+    }
+    for (int i = 0; i < mtrain_.cols(); i++) {
+      item_biases_[i] = static_cast<double>(rand()) / RAND_MAX;
+    }
+  }
+
+ protected:
+  double predict_rate(int user, int item) const {
+    assert(user < U_.rows() && item < V_.cols());
+    return bias(user, item) + U_.row(user).dot(V_.col(item));
+  }
+
+ public:
+  void train(const char *filename) {
+    read_file(filename, mtrain_);
+    average_rate_ = average(mtrain_);
+  }
+
+  void factorize(size_t ncluster, size_t niter, double eta, double lambda) {
+    size_t count = 0;
+    size_t N = mtrain_.nonZeros();
+    U_.resize(mtrain_.rows(), ncluster);
+    V_.resize(ncluster, mtrain_.cols());
+    set_random(U_);
+    set_random(V_);
+    set_random_biases();
+    for (size_t i = 0; i < niter; i++) {
+      for (int j = 0; j < mtrain_.outerSize(); j++) {
+        for (SMat::InnerIterator it(mtrain_, j); it; ++it) {
+          count++;
+          double eta_2 = eta / (1 + static_cast<double>(count) / N);
+          double val = it.value() - predict_rate(it.row(), it.col());
+          U_.row(it.row()) += eta_2 * (val * V_.col(it.col()).transpose()
+                                       - lambda * U_.row(it.row()));
+          V_.col(it.col()) += eta_2 * (val * U_.row(it.row()).transpose()
+                                       - lambda * V_.col(it.col()));
+          average_rate_ += eta_2 * val;
+          user_biases_[it.row()] +=
+            eta_2 * (val - lambda * user_biases_[it.row()]);
+          item_biases_[it.col()] +=
+            eta_2 * (val - lambda * item_biases_[it.col()]);
+        }
+      }
+    }
+  }
+};
+
 void cross_validation(const char *dir, size_t ncluster,
                       size_t niter, double eta, double lambda) {
   size_t ntest = 5;
@@ -258,7 +330,8 @@ void cross_validation(const char *dir, size_t ncluster,
     printf("Test data:     %s\n", testfn);
     //MFGD mf;
     //MFSGD mf;
-    MFSGDbias mf;
+    //MFSGDBiasFixed mf;
+    MFSGDBiasOptimize mf;
     mf.train(trainfn);
 
     printf("Factorizing input matrix ...\n");
