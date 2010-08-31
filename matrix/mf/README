@@ -1,0 +1,42 @@
+================================================================
+ mf: Recommendation system using matrix factorization
+
+ Copyright(C) Mizuki Fujisawa <fujisawa@bayon.cc>
+================================================================
+
+Overview:
+  mf is an recommendation system using matrix factorization.
+
+Install:
+  % ./waf configure
+  % ./waf build
+  % sudo ./waf install
+
+Usage:
+  * Factorize input matrix and show recommended items
+    % build/default/mfctl factorize file ncluster niter eta lambda
+
+  * Make test data for cross validation test
+    % build/default/mfctl mktest file dir ntest
+
+  * Do cross validation test
+    % build/default/mfctl test dir ncluster niter eta lambda
+
+Format of Input Data:
+  * List of input documents
+    user_id1 \t item_id1 \t rate \n
+    user_id1 \t item_id2 \t rate \n
+    user_id2 \t item_id2 \t rate \n
+    user_id2 \t item_id4 \t rate \n
+    ...
+
+    * user_id : integer
+    * item_id : integer
+    * rate    : integer
+
+Requirement:
+  * C++ compiler with STL (Standard Template Library)
+  * Eigen <http://eigen.tuxfamily.org/index.php?title=Main_Page>
+
+License:
+  GPL2 (Gnu General Public License Version 2)

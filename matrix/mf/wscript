@@ -1,0 +1,58 @@
+#!/usr/bin/env python
+# -*- conding: utf-8 -*-
+
+import sys
+import Options
+
+APPNAME = 'mf'
+VERSION = '0.0.1'
+
+srcdir = '.'
+blddir = 'build'
+
+def set_options(opt):
+    opt.tool_options('compiler_cxx')
+    opt.tool_options('unittestt')
+
+def configure(conf):
+    conf.env.CPPPATH = ['/usr/local/include']
+    conf.env.CXXFLAGS += ['-O3', '-Wall']
+    conf.env.LIBPATH  += ['/usr/local/lib']
+
+    conf.check_tool('compiler_cxx')
+    conf.check_tool('unittestt')
+
+    # check libraries
+    conf.check_cxx(header_name = 'Eigen/Array', mandatory = True)
+    conf.check_cxx(header_name = 'Eigen/Sparse', mandatory = True)
+
+    #conf.write_config_header('config.h')
+
+def build(bld):
+    task1 = bld(
+        features = 'cxx cshlib',
+        source   = 'util.cc factorizer.cc',
+        name     = 'mf',
+        target   = 'mf',
+        includes = '.'
+    )
+    task2 = bld(
+        features     = 'cxx cprogram testt',
+        source       = 'utiltest.cc',
+        target       = 'utiltest',
+        includes     = '.',
+        lib          = ['gtest', 'pthread'],
+        uselib_local = 'mf'
+    )
+    task3 = bld(
+        features     = 'cxx cprogram',
+        source       = 'mfctl.cc',
+        target       = 'mfctl',
+        includes     = '.',
+        uselib_local = 'mf'
+    )
+
+def dist_hook():
+  import Scripting
+#  Scripting.g_gz = 'gz'
+  Scripting.dist_exts += ['.svn']
