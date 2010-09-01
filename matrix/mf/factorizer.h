@@ -25,8 +25,9 @@
 #include <cstdlib>
 #include <fstream>
 #include <queue>
+#include <tr1/unordered_map>
 #include <vector>
-#include <Eigen/Array>
+#include <Eigen/Core>
 #include <Eigen/Sparse>
 #include "util.h"
 
@@ -49,6 +50,27 @@ class MatrixFactorizer {
       return a.second < b.second;
     }
   };
+
+  /**
+   * Save a matrix to a file.
+   * @param filename output file name
+   * @return return true if succeeded
+   */
+  void save_matrix(const char *filename, const Mat &mat) const {
+    FILE *fp = fopen(filename, "w");
+    if (fp == NULL) {
+      fprintf(stderr, "[Error] cannot open %s\n", filename);
+      exit(1);
+    }
+    for (int i = 0; i < mat.rows(); i++) {
+      for (int j = 0; j < mat.cols(); j++) {
+        if (j != 0) fprintf(fp, "\t");
+        fprintf(fp, "%.2f", mat(i, j));
+      }
+      fprintf(fp, "\n");
+    }
+    fclose(fp);
+  }
 
  protected:
   SMat mtrain_;  ///< training matrix
@@ -87,7 +109,7 @@ class MatrixFactorizer {
       size_t userid = atoi(splited[0].c_str());
       size_t itemid = atoi(splited[1].c_str());
       int rate = atoi(splited[2].c_str());
-      mat.fill(userid, itemid) = rate;
+      mat.insert(userid, itemid) = rate;
       splited.clear();
     }
   }
@@ -192,6 +214,10 @@ class MatrixFactorizer {
     }
   }
 
+  /**
+   * Print top n predicted rates.
+   * @param num the number of output rates
+   */
   void print_top_rate(size_t num) const {
     for (int i = 1; i < mtrain_.rows(); i++) {
       std::priority_queue<std::pair<int, double>,
@@ -205,6 +231,93 @@ class MatrixFactorizer {
         printf("%d\t%d\t%.2f\n", i, p.first, p.second);
         pq.pop();
       }
+    }
+  }
+
+  /**
+   * Save a user matrix.
+   * @param filename output file name
+   */
+  void save_user_matrix(const char *filename) const {
+    save_matrix(filename, U_);
+  }
+
+  /**
+   * Save a item matrix.
+   * @param filename output file name
+   */
+  void save_item_matrix(const char *filename) const {
+    save_matrix(filename, V_.transpose());
+  }
+
+  void save_recommend(const char *filename, size_t max) const {
+    FILE *fp = fopen(filename, "w");
+    if (fp == NULL) {
+      fprintf(stderr, "[Error] cannot open %s\n", filename);
+      exit(1);
+    }
+    // user cluster
+    std::vector<int> user_clusters(U_.rows());
+    for (int i = 1; i < U_.rows(); i++) {
+      int max_idx = 1;
+      double max_val = -1.0;
+      for (int j = 1; j < U_.cols(); j++) {
+        if (max_val < U_(i, j)) {
+          max_idx = j;
+          max_val = U_(i, j);
+        }
+      }
+      user_clusters[i] = max_idx;
+    }
+    // cluster items
+    std::vector<std::tr1::unordered_map<int, size_t> *>
+      cluster_item_maps(V_.rows());
+    std::tr1::unordered_map<int, size_t>::iterator cit;
+    for (int i = 0; i < mtrain_.outerSize(); i++) {
+      for (SMat::InnerIterator it(mtrain_, i); it; ++it) {
+//        if (it.value() < 3.0) continue;
+        int cluster_id = user_clusters[it.row()];
+        if (cluster_item_maps[cluster_id] == NULL) {
+          cluster_item_maps[cluster_id] =
+            new std::tr1::unordered_map<int, size_t>;
+        }
+        cit = cluster_item_maps[cluster_id]->find(it.col());
+        if (cit == cluster_item_maps[cluster_id]->end()) {
+          cluster_item_maps[cluster_id]->insert(
+            std::pair<int, size_t>(it.col(), 1));
+        } else {
+          cit->second += 1;
+        }
+      }
+    }
+    // sort cluster items
+    std::vector<std::pair<int, size_t> > pairs;
+    std::vector<std::vector<int> > cluster_items(V_.rows());
+    for (size_t i = 0; i < cluster_item_maps.size(); i++) {
+      if (cluster_item_maps[i] == NULL) continue;
+      for (cit = cluster_item_maps[i]->begin();
+           cit != cluster_item_maps[i]->end(); ++cit) {
+        pairs.push_back(std::pair<int, size_t>(cit->first, cit->second));
+      }
+      sort(pairs.begin(), pairs.end(), greater_pair<int, size_t>);
+      for (size_t j = 0; j < pairs.size() && j < max; j++) {
+        cluster_items[i].push_back(pairs[j].first);
+      }
+      pairs.clear();
+    }
+    cluster_item_maps.clear();
+
+    for (int i = 1; i < U_.rows(); i++) {
+      fprintf(fp, "%d", i);
+      int cluster_id = user_clusters[i];
+      for (size_t j = 0; j < cluster_items[cluster_id].size(); j++) {
+        fprintf(fp, "\t%d", cluster_items[cluster_id][j]);
+      }
+      fprintf(fp, "\n");
+    }
+    fclose(fp);
+    for (size_t i = 0; i < cluster_item_maps.size(); i++) {
+      if (cluster_item_maps[i]) delete cluster_item_maps[i];
     }
   }
 };

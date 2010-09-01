@@ -60,7 +60,7 @@ int main(int argc, char **argv) {
 static void usage(const char *progname) {
   fprintf(stderr, "%s: matrix factorization utility tool\n", progname);
   fprintf(stderr, "Usage:\n");
-  fprintf(stderr, " %% %s factorize file ncluster niter eta lambda\n", progname);
+  fprintf(stderr, " %% %s factorize file dir ncluster niter eta lambda\n", progname);
   fprintf(stderr, " %% %s mktest file dir ntest\n", progname);
   fprintf(stderr, " %% %s test dir ncluster niter eta lambda\n", progname);
   std::exit(EXIT_FAILURE);
@@ -69,20 +69,27 @@ static void usage(const char *progname) {
 
 static int run_factorize(int argc, char **argv) {
   const char *progname = argv[0];
-  if (argc != 7) usage(progname);
-  char *filename   = argv[2];
-  size_t ncluster = atoi(argv[3]);
-  size_t niter    = atoi(argv[4]);
-  double eta      = atof(argv[5]);
-  double lambda   = atof(argv[6]);
+  if (argc != 8) usage(progname);
+  char *filename  = argv[2];
+  char *dirname   = argv[3];
+  size_t ncluster = atoi(argv[4]);
+  size_t niter    = atoi(argv[5]);
+  double eta      = atof(argv[6]);
+  double lambda   = atof(argv[7]);
 
   MF mf;
   mf.train(filename);
   fprintf(stderr, "Factorizing input matrix ...\n");
   mf.factorize(ncluster, niter, eta, lambda);
-  fprintf(stderr, "Calculating recommend items ...\n");
-//  mf.print_all_rate();
-  mf.print_top_rate(MAX_RECOMMEND);
+  fprintf(stderr, "Saving a user matirx and a item matrix ...\n");
+  char upath[256], ipath[256], rpath[256];
+  sprintf(upath, "%s/usermat.tsv", dirname);
+  mf.save_user_matrix(upath);
+  sprintf(ipath, "%s/itemmat.tsv", dirname);
+  mf.save_item_matrix(ipath);
+  fprintf(stderr, "Saving recommend items for each user ...\n");
+  sprintf(rpath, "%s/recom.tsv", dirname);
+  mf.save_recommend(rpath, MAX_RECOMMEND);
   return 0;
 }
 

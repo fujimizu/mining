@@ -23,7 +23,7 @@ def configure(conf):
     conf.check_tool('unittestt')
 
     # check libraries
-    conf.check_cxx(header_name = 'Eigen/Array', mandatory = True)
+    conf.check_cxx(header_name = 'Eigen/Core', mandatory = True)
     conf.check_cxx(header_name = 'Eigen/Sparse', mandatory = True)
 
     #conf.write_config_header('config.h')

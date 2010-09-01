@@ -30,6 +30,24 @@ const std::string DELIMITER("\t");        ///< delimiter string
 
 
 /**
+ * Compare pair items.
+ * @param left  item
+ * @param right item
+ * @return return true if left_value > right_value
+ */
+template<typename KeyType, typename ValueType>
+bool greater_pair(const std::pair<KeyType, ValueType> &left,
+                  const std::pair<KeyType, ValueType> &right) {
+  if (left.second > right.second) {
+    return true;
+  } else if (left.second == right.second) {
+    return left.first > right.first;
+  } else {
+    return false;
+  }
+}
+
+/**
  * Split a string by a delimiter string.
  * @param s input string to be splited
  * @param delimiter delimiter string
