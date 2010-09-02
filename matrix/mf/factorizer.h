@@ -24,6 +24,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <iostream>
 #include <queue>
 #include <tr1/unordered_map>
 #include <vector>
@@ -108,7 +109,7 @@ class MatrixFactorizer {
       split_string(line, "\t", splited);
       size_t userid = atoi(splited[0].c_str());
       size_t itemid = atoi(splited[1].c_str());
-      int rate = atoi(splited[2].c_str());
+      double rate = atof(splited[2].c_str());
       mat.insert(userid, itemid) = rate;
       splited.clear();
     }
@@ -258,10 +259,10 @@ class MatrixFactorizer {
     }
     // user cluster
     std::vector<int> user_clusters(U_.rows());
-    for (int i = 1; i < U_.rows(); i++) {
-      int max_idx = 1;
+    for (int i = 0; i < U_.rows(); i++) {
+      int max_idx = 0;
       double max_val = -1.0;
-      for (int j = 1; j < U_.cols(); j++) {
+      for (int j = 0; j < U_.cols(); j++) {
         if (max_val < U_(i, j)) {
           max_idx = j;
           max_val = U_(i, j);
@@ -291,6 +292,43 @@ class MatrixFactorizer {
       }
     }
     // sort cluster items
+    std::vector<std::pair<int, double> > pairs;
+    std::vector<std::vector<int> > cluster_items(V_.rows());
+    for (size_t i = 0; i < cluster_item_maps.size(); i++) {
+      if (cluster_item_maps[i] == NULL) continue;
+      for (cit = cluster_item_maps[i]->begin();
+           cit != cluster_item_maps[i]->end(); ++cit) {
+        pairs.push_back(std::pair<int, size_t>(cit->first, cit->second));
+      }
+      sort(pairs.begin(), pairs.end(), greater_pair<int, size_t>);
+      for (size_t j = 0; j < pairs.size(); j++) {
+        cluster_items[i].push_back(pairs[j].first);
+      }
+      pairs.clear();
+    }
+    cluster_item_maps.clear();
+
+    for (int i = 1; i < U_.rows(); i++) {
+      fprintf(fp, "%d", i);
+      int cluster_id = user_clusters[i];
+      for (size_t j = 0; j < cluster_items[cluster_id].size(); j++) {
+        pairs.push_back(std::pair<int, double>(
+          cluster_items[cluster_id][j],
+          predict_rate(i, cluster_items[cluster_id][j])));
+      }
+      sort(pairs.begin(), pairs.end(), greater_pair<int, double>);
+      for (size_t j = 0; j < pairs.size() && j < max; j++) {
+        fprintf(fp, "\t%d", pairs[j].first);
+      }
+      fprintf(fp, "\n");
+      pairs.clear();
+    }
+    fclose(fp);
+    for (size_t i = 0; i < cluster_item_maps.size(); i++) {
+      if (cluster_item_maps[i]) delete cluster_item_maps[i];
+    }
+
+    /*
     std::vector<std::pair<int, size_t> > pairs;
     std::vector<std::vector<int> > cluster_items(V_.rows());
     for (size_t i = 0; i < cluster_item_maps.size(); i++) {
@@ -319,6 +357,7 @@ class MatrixFactorizer {
     for (size_t i = 0; i < cluster_item_maps.size(); i++) {
       if (cluster_item_maps[i]) delete cluster_item_maps[i];
     }
+    */
   }
 };
 
