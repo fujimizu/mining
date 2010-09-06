@@ -2,7 +2,7 @@
 // Extract SURF features from images using OpenCV
 //
 // Build:
-//  % g++ extract_surf_for_bayon.cc -o extract_surf -I/usr/local/include/opencv -O3 -lcv -lhighgui
+//  % g++ extract_surf_for_bayon.cc -o extract_surf -Wall -O3 -I/usr/include/opencv -lcv -lhighgui
 //
 //
 
@@ -47,17 +47,17 @@ int main(int argc, char **argv) {
 
       fprintf(countfp, "%s\t%d\n", line.c_str(), keypoints->total);
       for (int i = 0; i < keypoints->total; i++) {
-        printf("%d", descid++);
+        printf("%ld", descid++);
         float *descriptor = (float *)cvGetSeqElem(descriptors, i);
         for (size_t j = 0; j < NUM_VECTOR; j++) {
           if (fabs(descriptor[j]) > 0.0001) { // threshold
-            printf("\t%d\t%.4f", j, descriptor[j]);
+            printf("\t%ld\t%.4f", j, descriptor[j]);
           }
         }
         printf("\n");
       }
     }
-    fprintf(stderr, "(%d)\t%s\n", ++count, line.c_str());
+    fprintf(stderr, "(%ld)\t%s\n", ++count, line.c_str());
   }
   cvReleaseMemStorage(&storage);
   return 0;
