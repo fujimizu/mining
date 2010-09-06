@@ -30,11 +30,11 @@ def configure(conf):
 
 def build(bld):
     task1 = bld(
-        features = 'cxx cshlib',
-        source   = 'util.cc factorizer.cc',
-        name     = 'mf',
-        target   = 'mf',
-        includes = '.'
+        features     = 'cxx cshlib',
+        source       = 'util.cc factorizer.cc',
+        name         = 'mf',
+        target       = 'mf',
+        includes     = '.'
     )
     task2 = bld(
         features     = 'cxx cprogram testt',
