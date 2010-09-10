@@ -3,6 +3,7 @@
 // http://nlp.stanford.edu/IR-book/html/htmledition/variable-byte-codes-1.html
 //
 
+#include <stdint.h>
 #include <algorithm>
 #include <iostream>
 #include <map>
