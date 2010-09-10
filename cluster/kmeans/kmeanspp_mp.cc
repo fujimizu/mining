@@ -1,7 +1,13 @@
 // K-means++ + OpenMP
+//
+// Build:
+//  % g++ kmeanspp_mp.cc -o kmeanspp_mp -Wall -O3 -fopenmp
+//
 
+#include <stdint.h>
 #include <cassert>
 #include <cstdio>
+#include <cstring>
 #include <ctime>
 #include <fstream>
 #include <vector>
@@ -198,7 +204,7 @@ class KMeans {
     memset(assign, nclusters, sizeof(nclusters) * vectors_.size());
     memset(prev_assign, nclusters, sizeof(nclusters) * vectors_.size());
     for (size_t i = 0; i < MAX_ITER; i++) {
-      fprintf(stderr, "kmeans loop No.%d ...\n", i);
+      fprintf(stderr, "kmeans loop No.%ld ...\n", i);
       assign_clusters(assign);
       move_centers(assign);
       if (is_same_array(assign, prev_assign, vectors_.size())) {
@@ -209,7 +215,7 @@ class KMeans {
     }
     // show clustering result
     for (LabelMap::iterator it = labels_.begin(); it != labels_.end(); ++it) {
-      printf("%s\t%d\n", it->first.c_str(), assign[it->second]);
+      printf("%s\t%ld\n", it->first.c_str(), assign[it->second]);
     }
   }
 
@@ -219,7 +225,7 @@ class KMeans {
       printf("%s", lit->first.c_str());
       for (Vector::const_iterator vit = vectors_[lit->second]->begin();
            vit != vectors_[lit->second]->end(); ++vit) {
-        printf("\t%d\t%.3f", vit->first, vit->second);
+        printf("\t%ld\t%.3f", vit->first, vit->second);
       }
       printf("\n");
     }
