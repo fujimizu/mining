@@ -13,7 +13,7 @@ const static size_t SIZE = 128;
 
 std::vector<std::string> splitAll(std::string s, std::string t) {
   std::vector<std::string> v;
-  for (int p = 0; (p = s.find(t)) != s.npos; ) {
+  for (size_t p = 0; (p = s.find(t)) != s.npos; ) {
     v.push_back(s.substr(0, p));
     s = s.substr(p + t.size());
   }
@@ -136,10 +136,10 @@ int main(int argc, char **argv) {
     printf("%s", dent->d_name);
     for (std::map<size_t, size_t>::iterator it = histogram.begin();
          it != histogram.end(); ++it) {
-      printf("\t%d\t%d", it->first, it->second);
+      printf("\t%ld\t%ld", it->first, it->second);
     }
     printf("\n");
-    fprintf(stderr, "%d\t%s\n", ++count, path);
+    fprintf(stderr, "%ld\t%s\n", ++count, path);
     delete_features(features);
   }
   closedir(dp);
