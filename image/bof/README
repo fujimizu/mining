@@ -1,0 +1,21 @@
+================================================================
+ bof: bag-of-features extractor from images
+
+ Copyright(C) Mizuki Fujisawa <fujisawa@bayon.cc>
+================================================================
+
+Overview:
+
+Install:
+  % ./waf configure
+  % ./waf build
+  % sudo ./waf install
+
+Requirement:
+  * C++ compiler with STL (Standard Template Library)
+  * OpenCV (http://sourceforge.net/projects/opencvlibrary/)
+  * LSHKIT (http://lshkit.sourceforge.net/)
+  * bayon  (http://code.google.com/p/bayon)
+
+License:
+  New BSD License

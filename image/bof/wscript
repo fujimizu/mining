@@ -1,0 +1,64 @@
+#!/usr/bin/env python
+# -*- conding: utf-8 -*-
+
+import sys
+import Options
+
+APPNAME = 'bof'
+VERSION = '0.0.1'
+
+srcdir = '.'
+blddir = 'build'
+
+def set_options(opt):
+    opt.tool_options('compiler_cxx')
+    opt.tool_options('unittestt')
+
+def configure(conf):
+    conf.env.CPPPATH = ['/usr/local/include', '/usr/include/opencv',
+                        '/home/fujisawa/src/lshkit-0.2.1/include/']
+    conf.env.CXXFLAGS += ['-O3', '-Wall']
+    conf.env.LIBPATH  += ['/usr/local/lib']
+
+    conf.check_tool('compiler_cxx')
+    conf.check_tool('unittestt')
+
+    # check libraries
+    conf.check_cxx(lib = 'cv', mandatory = True)
+    conf.check_cxx(lib = 'highgui', mandatory = True)
+    conf.check_cxx(header_name = 'cv.h', mandatory = True)
+    conf.check_cxx(header_name = 'highgui.h', mandatory = True)
+
+    #conf.write_config_header('config.h')
+
+def build(bld):
+    task1 = bld(
+        features     = 'cxx cshlib',
+        source       = 'descriptor.cc lsh.cc',
+        name         = 'bof',
+        target       = 'bof',
+        lib          = ['cv', 'highgui'],
+        includes     = '.'
+    )
+    '''
+    task2 = bld(
+        features     = 'cxx cprogram testt',
+        source       = 'utiltest.cc',
+        target       = 'utiltest',
+        includes     = '.',
+        lib          = ['gtest', 'pthread'],
+        uselib_local = 'bof'
+    )
+    '''
+    task3 = bld(
+        features     = 'cxx cprogram',
+        source       = 'bofctl.cc',
+        target       = 'bofctl',
+        includes     = '.',
+        uselib_local = 'bof'
+    )
+
+def dist_hook():
+  import Scripting
+#  Scripting.g_gz = 'gz'
+  Scripting.dist_exts += ['.svn']
