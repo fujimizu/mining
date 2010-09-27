@@ -5,6 +5,9 @@
 // Copyright(C) 2010  Mizuki Fujisawa <fujisawa@bayon.cc>
 //
 
+#ifndef BOF_LSH_H_
+#define BOF_LSH_H_
+
 #include <vector>
 #include <lshkit.h>
 
@@ -51,3 +54,5 @@ class Lsh {
 };
 
 } /* namespace bof */
+
+#endif  // BOF_LSH_H_

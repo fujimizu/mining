@@ -4,6 +4,9 @@
 // Copyright(C) 2010  Mizuki Fujisawa <fujisawa@bayon.cc>
 //
 
+#ifndef BOF_DESCRIPTOR_H_
+#define BOF_DESCRIPTOR_H_
+
 #include <cassert>
 #include <cstdio>
 #include <cv.h>
@@ -91,3 +94,5 @@ class SiftDetector : public FeatureDetector {
 };
 
 } /* namespace bof */
+
+#endif  // BOF_DESCRIPTOR_H_
