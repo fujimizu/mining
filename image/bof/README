@@ -6,10 +6,9 @@
 
 Overview:
 
-Install:
+Build:
   % ./waf configure
   % ./waf build
-  % sudo ./waf install
 
 Requirement:
   * C++ compiler with STL (Standard Template Library)
