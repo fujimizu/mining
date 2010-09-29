@@ -16,7 +16,8 @@ def set_options(opt):
 
 def configure(conf):
     conf.env.CPPPATH = ['/usr/local/include', '/usr/include/opencv',
-                        '/home/fujisawa/src/lshkit-0.2.1/include/']
+                        '/home/fujisawa/src/lshkit-0.2.1/include',
+                        '/usr/local/include/bayon']
     conf.env.CXXFLAGS += ['-O3', '-Wall']
     conf.env.LIBPATH  += ['/usr/local/lib']
 
@@ -26,18 +27,20 @@ def configure(conf):
     # check libraries
     conf.check_cxx(lib = 'cv', mandatory = True)
     conf.check_cxx(lib = 'highgui', mandatory = True)
+    conf.check_cxx(lib = 'bayon', mandatory = True)
     conf.check_cxx(header_name = 'cv.h', mandatory = True)
     conf.check_cxx(header_name = 'highgui.h', mandatory = True)
+    conf.check_cxx(header_name = 'bayon.h', mandatory = True)
 
     #conf.write_config_header('config.h')
 
 def build(bld):
     task1 = bld(
         features     = 'cxx cshlib',
-        source       = 'descriptor.cc lsh.cc',
+        source       = 'descriptor.cc lsh.cc visual_words.cc util.cc',
         name         = 'bof',
         target       = 'bof',
-        lib          = ['cv', 'highgui'],
+        lib          = ['cv', 'highgui', 'bayon'],
         includes     = '.'
     )
     '''

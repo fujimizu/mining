@@ -4,26 +4,32 @@
 // Copyright(C) 2010  Mizuki Fujisawa <fujisawa@bayon.cc>
 //
 
+#include <cstdlib>
 #include <cstdio>
+#include <ctime>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include "descriptor.h"
 #include "lsh.h"
+#include "visual_words.h"
 
 /* function prototypes */
 int main(int argc, char **argv);
 static void usage(const char *progname);
-static void extract_stdin();
-static void extract_file(const char *path);
-static void extract_base(std::istream &is);
+static int run_vwd(int argc, char **argv);
+static int run_lsh(int argc, char **argv);
+static void vwd_base(std::istream &is);
+static void lsh_base(std::istream &is);
 
 
 int main(int argc, char **argv) {
-  if (argc == 1) {
-    extract_stdin();
-  } else if (argc == 2) {
-    extract_file(argv[1]);
+  if (argc < 2) usage(argv[0]);
+  std::string command(argv[1]);
+  if (command == "vwd") {
+    return run_vwd(argc, argv);
+  } else if (command == "lsh") {
+    return run_lsh(argc, argv);
   } else {
     usage(argv[0]);
   }
@@ -32,24 +38,44 @@ int main(int argc, char **argv) {
 static void usage(const char *progname) {
   fprintf(stderr, "%s: Image Feature Extractor\n", progname);
   fprintf(stderr, "Usage:\n");
-  fprintf(stderr, " %% %s [-d type] file\n", progname);
+  fprintf(stderr, " %% %s vwd [file]\n", progname);
+  fprintf(stderr, " %% %s lsh [file]\n", progname);
   exit(EXIT_FAILURE);
 }
 
-static void extract_stdin() {
-  extract_base(std::cin);
+static int run_vwd(int argc, char **argv) {
+  srand(time(NULL));
+  vwd_base(std::cin);
+  return 0;
 }
 
-static void extract_file(const char *path) {
-  std::ifstream ifs(path);
-  if (!ifs) {
-    fprintf(stderr, "[Error] cannot open file: %s\n", path);
-    exit(1);
+static int run_lsh(int argc, char **argv) {
+  if (argc == 2) {
+    lsh_base(std::cin);
+  } else if (argc == 3) {
+    std::ifstream ifs(argv[2]);
+    if (!ifs) {
+      fprintf(stderr, "[Error] cannot open file: %s\n", argv[2]);
+      return 1;
+    }
+    lsh_base(ifs);
+  } else {
+    usage(argv[0]);
   }
-  extract_base(ifs);
+  return 0;
 }
 
-static void extract_base(std::istream &is) {
+static void vwd_base(std::istream &is) {
+  bof::VisualWords vwd;
+  bof::SurfDetector detector;
+  char desc_path[] = "vwd_desc.tmp";
+  fprintf(stderr, "Saving descriptros..\n");
+  vwd.save_descriptors(desc_path, is, detector);
+  fprintf(stderr, "Clustering descriptros..\n");
+  vwd.do_clustering(desc_path, 0.1);
+}
+
+static void lsh_base(std::istream &is) {
   bof::SurfDetector detector;
   std::string line;
   std::vector<std::vector<float> > features;
