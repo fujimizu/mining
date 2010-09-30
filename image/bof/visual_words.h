@@ -80,7 +80,7 @@ class VisualWords {
       }
       analyzer_.add_document(doc);
     }
-    analyzer_.idf();
+    //analyzer_.idf();
     analyzer_.set_eval_limit(CLUSTER_LIMIT);
     printf("documents: %zd\n", analyzer_.documents().size());
     analyzer_.do_clustering(bayon::Analyzer::RB);
