@@ -8,7 +8,6 @@
 #include <cstdio>
 #include <ctime>
 #include <fstream>
-#include <iostream>
 #include <string>
 #include "descriptor.h"
 #include "lsh.h"
