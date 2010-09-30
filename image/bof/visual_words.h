@@ -82,13 +82,11 @@ class VisualWords {
     }
     //analyzer_.idf();
     analyzer_.set_eval_limit(CLUSTER_LIMIT);
-    printf("documents: %zd\n", analyzer_.documents().size());
     analyzer_.do_clustering(bayon::Analyzer::RB);
   }
 
   void get_bof(const char *path) {
     std::vector<bayon::Cluster *> clusters = analyzer_.clusters();
-    printf("clusters: %zd\n", clusters.size());
     for (size_t i = 0; i < clusters.size(); i++) {
       classifier_.add_vector(i, *clusters[i]->centroid_vector());
     }
