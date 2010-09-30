@@ -15,20 +15,22 @@
 /* function prototypes */
 int main(int argc, char **argv);
 static void usage(const char *progname);
-static void vwd_base(std::istream &is);
+static void vwd_base(double rate, std::istream &is);
 
 
 int main(int argc, char **argv) {
   srand(time(NULL));
-  if (argc == 1) {
-    vwd_base(std::cin);
-  } else if (argc == 2) {
-    std::ifstream ifs(argv[1]);
+  if (argc == 2) {
+    double rate = atof(argv[1]);
+    vwd_base(rate, std::cin);
+  } else if (argc == 3) {
+    double rate = atof(argv[1]);
+    std::ifstream ifs(argv[2]);
     if (!ifs) {
-      fprintf(stderr, "cannot open file: %s\n", argv[1]);
+      fprintf(stderr, "cannot open file: %s\n", argv[2]);
       exit(1);
     }
-    vwd_base(ifs);
+    vwd_base(rate, ifs);
   } else {
     usage(argv[0]);
   }
@@ -38,19 +40,18 @@ int main(int argc, char **argv) {
 static void usage(const char *progname) {
   fprintf(stderr, "%s: Image Feature Extractor using Visual Words\n", progname);
   fprintf(stderr, "Usage:\n");
-  fprintf(stderr, " %% %s [file]\n", progname);
+  fprintf(stderr, " %% %s rate [file]\n", progname);
   exit(EXIT_FAILURE);
 }
 
-static void vwd_base(std::istream &is) {
+static void vwd_base(double rate, std::istream &is) {
   bof::VisualWords vwd;
   bof::SurfDetector detector;
   char desc_path[] = "vwd_desc.tmp";
   fprintf(stderr, "Saving descriptros..\n");
   vwd.save_descriptors(desc_path, is, detector);
   fprintf(stderr, "Clustering descriptros..\n");
-  vwd.do_clustering(desc_path, 1.0);
-  //vwd.do_clustering(desc_path, 0.1);
+  vwd.do_clustering(desc_path, rate);
   fprintf(stderr, "Print bag-of-features..\n");
   vwd.get_bof(desc_path);
 }
