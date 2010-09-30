@@ -71,7 +71,8 @@ class VisualWords {
     std::vector<std::string> splited;
     bayon::DocumentId id = 0;
     while (std::getline(ifs, line)) {
-      if (line.empty() || rand() / RAND_MAX > rate) continue;  // random skip
+      if (line.empty() ||  // random skip
+          static_cast<double>(rand()) / RAND_MAX > rate) continue;
       splited.clear();
       bof::split_string(line, "\t", splited);
       bayon::Document doc(id++);
