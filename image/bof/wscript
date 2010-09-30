@@ -19,6 +19,7 @@ def configure(conf):
                         '/home/fujisawa/src/lshkit-0.2.1/include',
                         '/usr/local/include/bayon']
     conf.env.CXXFLAGS += ['-O3', '-Wall']
+    #conf.env.CXXFLAGS += ['-O3', '-Wall', '-DHAVE_CONFIG_H']
     conf.env.LIBPATH  += ['/usr/local/lib']
 
     conf.check_tool('compiler_cxx')
@@ -53,10 +54,17 @@ def build(bld):
         uselib_local = 'bof'
     )
     '''
+    task2 = bld(
+        features     = 'cxx cprogram',
+        source       = 'extlsh.cc',
+        target       = 'extlsh',
+        includes     = '.',
+        uselib_local = 'bof'
+    )
     task3 = bld(
         features     = 'cxx cprogram',
-        source       = 'bofctl.cc',
-        target       = 'bofctl',
+        source       = 'extvwd.cc',
+        target       = 'extvwd',
         includes     = '.',
         uselib_local = 'bof'
     )

@@ -22,6 +22,8 @@ class VisualWords {
  private:
   static const double CLUSTER_LIMIT = 1.5;
   static const size_t CLVECTOR_SIZE = 128;
+  static const size_t MAX_INDEX     = 100;
+  static const size_t MAX_INDEX_KEY = 20;
 
   bayon::Analyzer analyzer_;
   bayon::Classifier classifier_;
@@ -78,22 +80,65 @@ class VisualWords {
       }
       analyzer_.add_document(doc);
     }
-    /*
-    for (size_t i = 0; i < analyzer_.documents().size(); i++) {
-      bayon::Document *doc1 = analyzer_.documents()[i];
-      bayon::VecHashMap *hmap = doc1->feature()->hash_map();
-      for (bayon::VecHashMap::iterator it = hmap->begin();
-           it != hmap->end(); ++it) {
-        printf("%ld\t%f\n", it->first, it->second);
-      }
-    }
-    */
     analyzer_.idf();
     analyzer_.set_eval_limit(CLUSTER_LIMIT);
+    printf("documents: %zd\n", analyzer_.documents().size());
     analyzer_.do_clustering(bayon::Analyzer::RB);
   }
 
-  void get_bof() {
+  void get_bof(const char *path) {
+    std::vector<bayon::Cluster *> clusters = analyzer_.clusters();
+    printf("clusters: %zd\n", clusters.size());
+    for (size_t i = 0; i < clusters.size(); i++) {
+      classifier_.add_vector(i, *clusters[i]->centroid_vector());
+    }
+    classifier_.resize_inverted_index(MAX_INDEX);
+
+    std::ifstream ifs(path);
+    if (!ifs) {
+      fprintf(stderr, "cannot open file: %s\n", path);
+      exit(1);
+    }
+    std::string line;
+    std::vector<std::string> splited;
+    std::vector<std::string> splfile;
+    std::string prevfile("");
+    std::map<size_t, size_t> feature;
+    bayon::DocumentId id = 0;
+    while (std::getline(ifs, line)) {
+      if (line.empty()) continue;
+      splited.clear();
+      splfile.clear();
+      bof::split_string(line, "\t", splited);
+      bof::split_string(splited[0], " ", splfile);
+      if (!prevfile.empty() && prevfile != splfile[0]) {
+        printf("%s", prevfile.c_str());
+        for (std::map<size_t, size_t>::iterator it = feature.begin();
+             it != feature.end(); ++it) {
+          printf("\t%zd\t%zd", it->first, it->second);
+        }
+        printf("\n");
+        feature.clear();
+      }
+      prevfile = splfile[0];
+      bayon::Document doc(id++);
+      for (size_t i = 1; i < splited.size(); i++) {
+        doc.add_feature(i-1, atof(splited[i].c_str()));
+      }
+      bayon::Classifier::VectorId clid = get_most_similar_cluster(doc);
+      if (feature.find(clid) != feature.end()) {
+        feature[clid]++;
+      } else {
+        feature[clid] = 1;
+      }
+    }
+  }
+
+  bayon::Classifier::VectorId get_most_similar_cluster(
+    const bayon::Document &doc) {
+    std::vector<std::pair<bayon::Classifier::VectorId, double> > pairs;
+    classifier_.similar_vectors(MAX_INDEX_KEY, *doc.feature(), pairs);
+    return pairs[0].first;
   }
 };
 
