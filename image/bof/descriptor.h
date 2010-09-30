@@ -35,22 +35,17 @@ class FeatureDetector {
 class SurfDetector : public FeatureDetector {
  private:
   static const size_t DIM_DESCRIPTOR = 128;
-  CvMemStorage *storage;
 
  public:
   /**
    * Constructor.
    */
-  SurfDetector() : storage(NULL) {
-    storage = cvCreateMemStorage(0);
-  }
+  SurfDetector() { }
 
   /**
    * Destructor.
    */
-  ~SurfDetector() {
-    if (storage) cvReleaseMemStorage(&storage);
-  }
+  ~SurfDetector() { }
 
   /**
    * Extract local features.
@@ -59,6 +54,7 @@ class SurfDetector : public FeatureDetector {
    */
   void extract(const char *path, std::vector<std::vector<float> > &features) {
     assert(path);
+    CvMemStorage *storage = cvCreateMemStorage(0);
     CvSeq* keypoints;
     CvSeq *descriptors;
     CvSURFParams params = cvSURFParams(500, 1);
@@ -69,15 +65,18 @@ class SurfDetector : public FeatureDetector {
     }
     cvExtractSURF(img, 0, &keypoints, &descriptors, storage, params);
     cvReleaseImage(&img);
-    if (keypoints->total == 0) return;
-
-    for (int i = 0; i < keypoints->total; i++) {
-      std::vector<float> feature;
-      float *descriptor = (float *)cvGetSeqElem(descriptors, i);
-      std::copy(descriptor, descriptor + DIM_DESCRIPTOR,
-                std::back_inserter(feature));
-      features.push_back(feature);
+    if (keypoints->total > 0) {
+      for (int i = 0; i < keypoints->total; i++) {
+        std::vector<float> feature;
+        float *descriptor = (float *)cvGetSeqElem(descriptors, i);
+        std::copy(descriptor, descriptor + DIM_DESCRIPTOR,
+                  std::back_inserter(feature));
+        features.push_back(feature);
+      }
     }
+    cvClearSeq(keypoints);
+    cvClearSeq(descriptors);
+    cvReleaseMemStorage(&storage);
   }
 };
 

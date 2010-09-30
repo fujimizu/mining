@@ -49,7 +49,7 @@ class Lsh {
     for (size_t i = 0; i < hist.dim(); i++) {
       if (output[i]) values[i] = static_cast<size_t>(output[i]);
     }
-    delete output;
+    delete [] output;
   }
 };
 
