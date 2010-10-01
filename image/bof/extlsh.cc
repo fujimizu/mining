@@ -47,8 +47,9 @@ static void lsh_base(std::istream &is) {
   std::vector<std::vector<float> > features;
   std::vector<size_t> values;
   bof::Lsh lsh(10, 128, -1.0, 1.0);
+  size_t count = 0;
   while (std::getline(is, line)) {
-    printf("%s", line.c_str());
+    fprintf(stderr, "(%zd) %s\n", ++count, line.c_str());
     features.clear();
     detector.extract(line.c_str(), features);
     if (features.empty()) {
