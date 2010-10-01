@@ -21,7 +21,6 @@ namespace bof {
 class VisualWords {
  private:
   static const double CLUSTER_LIMIT = 1.5;
-  static const size_t CLVECTOR_SIZE = 128;
   static const size_t MAX_INDEX     = 100;
   static const size_t MAX_INDEX_KEY = 20;
 
@@ -81,6 +80,18 @@ class VisualWords {
       }
       analyzer_.add_document(doc);
     }
+    /*  // for debug
+    for (size_t i = 0; i < analyzer_.documents().size(); i++) {
+      bayon::VecHashMap *hmap = analyzer_.documents()[i]->feature()->hash_map();
+      printf("%zd", i);
+      for (bayon::VecHashMap::iterator it = hmap->begin(); it != hmap->end(); ++it) {
+        printf("\t%ld\t%f", it->first, it->second);
+      }
+      printf("\n");
+    }
+    printf("documents: %zd\n", analyzer_.documents().size());
+    printf("Cluster limit: %f\n", CLUSTER_LIMIT);
+    */
     //analyzer_.idf();
     analyzer_.set_eval_limit(CLUSTER_LIMIT);
     analyzer_.do_clustering(bayon::Analyzer::RB);
@@ -124,12 +135,22 @@ class VisualWords {
       for (size_t i = 1; i < splited.size(); i++) {
         doc.add_feature(i-1, atof(splited[i].c_str()));
       }
+      doc.feature()->normalize();
       bayon::Classifier::VectorId clid = get_most_similar_cluster(doc);
       if (feature.find(clid) != feature.end()) {
         feature[clid]++;
       } else {
         feature[clid] = 1;
       }
+    }
+    if (!feature.empty()) {
+      printf("%s", prevfile.c_str());
+      for (std::map<size_t, size_t>::iterator it = feature.begin();
+           it != feature.end(); ++it) {
+        printf("\t%zd\t%zd", it->first, it->second);
+      }
+      printf("\n");
+      feature.clear();
     }
   }
 

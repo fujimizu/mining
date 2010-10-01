@@ -18,8 +18,8 @@ def configure(conf):
     conf.env.CPPPATH = ['/usr/local/include', '/usr/include/opencv',
                         '/home/fujisawa/src/lshkit-0.2.1/include',
                         '/usr/local/include/bayon']
-    conf.env.CXXFLAGS += ['-O3', '-Wall']
-    #conf.env.CXXFLAGS += ['-O3', '-Wall', '-DHAVE_CONFIG_H']
+    #conf.env.CXXFLAGS += ['-O3', '-Wall']
+    conf.env.CXXFLAGS += ['-O3', '-Wall', '-DHAVE_CONFIG_H']
     conf.env.LIBPATH  += ['/usr/local/lib']
 
     conf.check_tool('compiler_cxx')
