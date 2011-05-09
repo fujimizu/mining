@@ -53,7 +53,7 @@ def count_words(tfdb, dfdb, filename):
             body = ''
             words = {}
         else:
-            body += title
+            body += line
     fp.close()
 
 def save_tf(tfdb, title, words):
